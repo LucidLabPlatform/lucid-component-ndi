@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=69", "setuptools_scm[toml]>=8", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lucid-component-example"
+dynamic = ["version"]
+description = "Example LUCID component (template — copy and rename for your component)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{ name = "LUCID" }]
+dependencies = [
+  "lucid-component-base @ git+https://github.com/LucidLabPlatform/lucid-component-base@v1.1.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.entry-points."lucid.components"]
+example = "lucid_component_example.component:ExampleComponent"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["lucid_component_example*"]
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+local_scheme = "no-local-version"
+fallback_version = "0.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
