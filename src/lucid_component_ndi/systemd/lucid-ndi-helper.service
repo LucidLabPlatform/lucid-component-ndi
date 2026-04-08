@@ -1,0 +1,22 @@
+[Unit]
+Description=LUCID NDI helper (display-user-owned, manages yuri_simple)
+After=network-online.target
+Before=lucid-agent-core.service
+PartOf=lucid-agent-core.service
+
+[Service]
+Type=simple
+User=__DISPLAY_USER__
+Group=__DISPLAY_USER__
+RuntimeDirectory=lucid
+RuntimeDirectoryMode=0755
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/user/__DISPLAY_UID__
+ExecStart=/home/lucid/lucid-agent-core/venv/bin/lucid-ndi-helper
+Restart=always
+RestartSec=5
+TimeoutStartSec=15
+SyslogIdentifier=lucid-ndi-helper
+
+[Install]
+WantedBy=multi-user.target

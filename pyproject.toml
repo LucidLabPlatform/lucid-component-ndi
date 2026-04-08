@@ -17,6 +17,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest"]
 
+[project.scripts]
+lucid-ndi-helper = "lucid_component_ndi.helper_server:main"
+lucid-ndi-helper-installer = "lucid_component_ndi.helper_installer:main"
+
 [project.entry-points."lucid_components"]
 ndi = "lucid_component_ndi.component:NDIComponent"
 
@@ -26,6 +30,9 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["lucid_component_ndi*"]
+
+[tool.setuptools.package-data]
+lucid_component_ndi = ["systemd/*.service"]
 
 [tool.setuptools_scm]
 version_scheme = "no-guess-dev"

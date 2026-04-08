@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"on_cmd\\\\|capabilities\\\\|subscribe\\\\|cmd_handler\\\\|dispatch\" /Users/farahorfaly/Desktop/LUCID/lucid-agent-core/src/lucid_agent_core/core/*.py)"
+    ]
+  }
+}

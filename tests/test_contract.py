@@ -1,6 +1,6 @@
 """Contract tests for NDIComponent: lifecycle, state, commands."""
 import json
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 from lucid_component_base import ComponentContext, ComponentStatus
@@ -84,7 +84,10 @@ def test_config_override_from_context():
     assert cfg["ndi_path"] == "/custom/libndi.so"
 
 
-def test_start_stop_lifecycle():
+@patch("lucid_component_ndi.component.helper_client")
+def test_start_stop_lifecycle(mock_helper):
+    mock_helper.is_available.return_value = True
+    mock_helper.get_status.return_value = {"ok": True, "receive_active": False, "send_active": False}
     comp, mqtt = _make()
     comp.start()
     assert comp.state.status == ComponentStatus.RUNNING
@@ -94,7 +97,10 @@ def test_start_stop_lifecycle():
     assert comp.state.stopped_at is not None
 
 
-def test_start_stop_idempotent():
+@patch("lucid_component_ndi.component.helper_client")
+def test_start_stop_idempotent(mock_helper):
+    mock_helper.is_available.return_value = True
+    mock_helper.get_status.return_value = {"ok": True}
     comp, _ = _make()
     comp.start()
     comp.start()
@@ -102,7 +108,9 @@ def test_start_stop_idempotent():
     comp.stop()
 
 
-def test_ping():
+@patch("lucid_component_ndi.component.helper_client")
+def test_ping(mock_helper):
+    mock_helper.get_status.return_value = {"ok": True}
     comp, mqtt = _make()
     comp.start()
     comp.on_cmd_ping(json.dumps({"request_id": "r1"}))
@@ -113,19 +121,22 @@ def test_ping():
     comp.stop()
 
 
-def test_reset_kills_processes():
+@patch("lucid_component_ndi.component.helper_client")
+def test_reset(mock_helper):
+    mock_helper.get_status.return_value = {"ok": True, "receive_active": False, "send_active": False}
+    mock_helper.reset.return_value = {"ok": True}
     comp, mqtt = _make()
     comp.start()
     comp.on_cmd_reset(json.dumps({"request_id": "r2"}))
     result = mqtt.last_payload_for("evt/reset/result")
     assert result["ok"] is True
-    state = comp.get_state_payload()
-    assert state["receive_active"] is False
-    assert state["send_active"] is False
+    mock_helper.reset.assert_called_once()
     comp.stop()
 
 
-def test_receive_start_no_stream_name():
+@patch("lucid_component_ndi.component.helper_client")
+def test_receive_start_no_stream_name(mock_helper):
+    mock_helper.get_status.return_value = {"ok": True}
     comp, mqtt = _make()
     comp.start()
     comp.on_cmd_receive_start(json.dumps({"request_id": "r3"}))
@@ -135,11 +146,26 @@ def test_receive_start_no_stream_name():
     comp.stop()
 
 
-def test_cfg_set_applies():
+@patch("lucid_component_ndi.component.helper_client")
+def test_receive_start_with_helper(mock_helper):
+    mock_helper.get_status.return_value = {"ok": True, "receive_active": True, "receive_pid": 1234}
+    mock_helper.start_receive.return_value = {"ok": True, "pid": 1234}
+    comp, mqtt = _make({"receive_stream_name": "TEST (east)"})
+    comp.start()
+    comp.on_cmd_receive_start(json.dumps({"request_id": "r4"}))
+    result = mqtt.last_payload_for("evt/receive/start/result")
+    assert result["ok"] is True
+    mock_helper.start_receive.assert_called_once()
+    comp.stop()
+
+
+@patch("lucid_component_ndi.component.helper_client")
+def test_cfg_set_applies(mock_helper):
+    mock_helper.get_status.return_value = {"ok": True}
     comp, mqtt = _make()
     comp.start()
     comp.on_cmd_cfg_set(json.dumps({
-        "request_id": "r4",
+        "request_id": "r5",
         "set": {"receive_stream_name": "NEW_STREAM (east)"},
     }))
     result = mqtt.last_payload_for("evt/cfg/set/result")
@@ -149,11 +175,13 @@ def test_cfg_set_applies():
     comp.stop()
 
 
-def test_cfg_set_unknown_key():
+@patch("lucid_component_ndi.component.helper_client")
+def test_cfg_set_unknown_key(mock_helper):
+    mock_helper.get_status.return_value = {"ok": True}
     comp, mqtt = _make()
     comp.start()
     comp.on_cmd_cfg_set(json.dumps({
-        "request_id": "r5",
+        "request_id": "r6",
         "set": {"bogus_key": 42},
     }))
     result = mqtt.last_payload_for("evt/cfg/set/result")
