@@ -34,6 +34,7 @@ class NDIComponent(Component):
         "ndi_path": "/usr/local/lib/libndi.so",
         "yuri_binary": "yuri_simple",
         "xdg_runtime_dir": "/run/user/1000",
+        "display_user": "",
         "cpu_cores": "",
         "nice_level": 0,
         "receive_stream_name": "",
@@ -191,9 +192,14 @@ class NDIComponent(Component):
         env = dict(os.environ)
         env["NDI_PATH"] = self._cfg["ndi_path"]
         env["XDG_RUNTIME_DIR"] = self._cfg["xdg_runtime_dir"]
-        # Ensure DISPLAY is set for GLX
         if "DISPLAY" not in env:
             env["DISPLAY"] = ":0"
+
+        # When display_user is set, wrap with sudo -u to run as the display
+        # user who owns the X/Wayland session. This avoids PrivateTmp isolation.
+        display_user = self._cfg.get("display_user", "")
+        if display_user:
+            cmd = ["sudo", "-u", display_user, "--"] + cmd
 
         self._log.info("Starting %s pipeline: %s", pipeline, " ".join(cmd))
         try:
