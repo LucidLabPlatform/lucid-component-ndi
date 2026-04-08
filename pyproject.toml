@@ -3,29 +3,29 @@ requires = ["setuptools>=69", "setuptools_scm[toml]>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lucid-component-example"
+name = "lucid-component-ndi"
 dynamic = ["version"]
-description = "Example LUCID component (template — copy and rename for your component)."
+description = "LUCID component for NDI video stream control via yuri_simple on Raspberry Pi."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [{ name = "LUCID" }]
 dependencies = [
-  "lucid-component-base @ git+https://github.com/LucidLabPlatform/lucid-component-base@v1.1.2",
+  "lucid-component-base @ git+https://github.com/LucidLabPlatform/lucid-component-base@v2.0.0",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest"]
 
-[project.entry-points."lucid.components"]
-example = "lucid_component_example.component:ExampleComponent"
+[project.entry-points."lucid_components"]
+ndi = "lucid_component_ndi.component:NDIComponent"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["lucid_component_example*"]
+include = ["lucid_component_ndi*"]
 
 [tool.setuptools_scm]
 version_scheme = "no-guess-dev"

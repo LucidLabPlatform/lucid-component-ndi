@@ -1,21 +1,17 @@
-# LUCID Component Template — use this Makefile when creating a new component.
-# After renaming the package, update PACKAGE below and the paths that use it.
+# lucid-component-ndi
 
 PYTHON ?= python3
 VENV ?= .venv
-PACKAGE = lucid_component_example
+PACKAGE = lucid_component_ndi
 
 .PHONY: help setup setup-venv dev test test-unit test-integration test-coverage build clean
 
 help:
-	@echo "LUCID Component Template (example)"
-	@echo "  make setup           - No .env needed (component runs via agent-core)"
-	@echo "  make setup-venv      - Create .venv, install project + deps (run this first)"
+	@echo "lucid-component-ndi"
+	@echo "  make setup-venv      - Create .venv, install project + deps"
 	@echo "  make test            - Unit + integration tests"
 	@echo "  make test-unit       - Unit tests only"
-	@echo "  make test-integration - Integration tests (if tests/integration exists)"
-	@echo "  make test-coverage   - Tests with coverage report"
-	@echo "  make build           - Build wheel and sdist (run make setup-venv first)"
+	@echo "  make build           - Build wheel and sdist"
 	@echo "  make clean           - Remove build artifacts"
 
 setup:
