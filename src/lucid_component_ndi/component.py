@@ -200,6 +200,7 @@ class NDIComponent(Component):
             proc = subprocess.Popen(
                 cmd,
                 env=env,
+                cwd="/tmp",
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
                 start_new_session=True,
