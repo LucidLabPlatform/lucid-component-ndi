@@ -39,8 +39,9 @@ class PipelineState:
             if self._receive_proc and self._receive_proc.poll() is None:
                 return {"ok": False, "error": "receive pipeline already running"}
             try:
+                merged_env = {**os.environ, **env}
                 proc = subprocess.Popen(
-                    cmd, env=env, stdout=subprocess.DEVNULL,
+                    cmd, env=merged_env, stdout=subprocess.DEVNULL,
                     stderr=subprocess.PIPE, start_new_session=True,
                 )
                 self._receive_proc = proc
@@ -58,8 +59,9 @@ class PipelineState:
             if self._send_proc and self._send_proc.poll() is None:
                 return {"ok": False, "error": "send pipeline already running"}
             try:
+                merged_env = {**os.environ, **env}
                 proc = subprocess.Popen(
-                    cmd, env=env, stdout=subprocess.DEVNULL,
+                    cmd, env=merged_env, stdout=subprocess.DEVNULL,
                     stderr=subprocess.PIPE, start_new_session=True,
                 )
                 self._send_proc = proc

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import threading
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -67,6 +68,48 @@ class NDIComponent(Component):
         out["capabilities"] = self.capabilities()
         return out
 
+    def schema(self) -> dict[str, Any]:
+        s = deepcopy(super().schema())
+
+        s["publishes"]["state"]["fields"].update({
+            "receive_active": {"type": "boolean"},
+            "receive_pid": {"type": "integer"},
+            "receive_stream_name": {"type": "string"},
+            "send_active": {"type": "boolean"},
+            "send_pid": {"type": "integer"},
+            "send_stream_name": {"type": "string"},
+        })
+
+        s["publishes"]["cfg"]["fields"].update({
+            "ndi_path": {"type": "string"},
+            "yuri_binary": {"type": "string"},
+            "xdg_runtime_dir": {"type": "string"},
+            "cpu_cores": {"type": "string"},
+            "nice_level": {"type": "integer"},
+            "receive_stream_name": {"type": "string"},
+            "receive_fullscreen": {"type": "boolean"},
+            "send_device": {"type": "string"},
+            "send_stream_name": {"type": "string"},
+        })
+
+        s["publishes"]["telemetry/receive_running"] = {
+            "fields": {"value": {"type": "boolean"}},
+        }
+        s["publishes"]["telemetry/send_running"] = {
+            "fields": {"value": {"type": "boolean"}},
+        }
+
+        s["subscribes"]["cmd/receive/start"] = {
+            "fields": {"stream_name": {"type": "string", "description": "Override receive stream name"}},
+        }
+        s["subscribes"]["cmd/receive/stop"] = {"fields": {}}
+        s["subscribes"]["cmd/send/start"] = {
+            "fields": {"stream_name": {"type": "string", "description": "Override send stream name"}},
+        }
+        s["subscribes"]["cmd/send/stop"] = {"fields": {}}
+
+        return s
+
     def get_state_payload(self) -> dict[str, Any]:
         status = self._last_status
         return {
@@ -103,11 +146,12 @@ class NDIComponent(Component):
 
     def _publish_all_retained(self) -> None:
         self.publish_metadata()
+        self.publish_schema()
         self.publish_status()
         self.publish_state()
         self.set_telemetry_config({
-            "receive_running": {"enabled": True, "interval_s": 5, "change_threshold_percent": 0},
-            "send_running": {"enabled": True, "interval_s": 5, "change_threshold_percent": 0},
+            "receive_running": {"enabled": False, "interval_s": 0.1, "change_threshold_percent": 0},
+            "send_running": {"enabled": False, "interval_s": 0.1, "change_threshold_percent": 0},
         })
         self.publish_cfg()
 
