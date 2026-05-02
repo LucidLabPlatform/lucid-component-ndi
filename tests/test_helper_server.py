@@ -74,3 +74,33 @@ def test_start_receive_when_running_restarts(fake_popen, monkeypatch, caplog):
         for rec in caplog.records
     ), f"expected warning log, got: {[r.message for r in caplog.records]}"
     assert fake_popen[0]._alive is False
+
+
+def test_start_send_when_running_restarts(fake_popen, monkeypatch, caplog):
+    """A second start_send while a send is running should stop the old
+    process, log a warning, and start a new process — returning ok=True."""
+    state = PipelineState()
+
+    r1 = state.start_send(["yuri_simple", "--tx"], {"FOO": "1"})
+    assert r1 == {"ok": True, "pid": fake_popen[0].pid}
+
+    def kill_first(pid, _sig):
+        assert pid == fake_popen[0].pid
+        fake_popen[0]._alive = False
+
+    monkeypatch.setattr(
+        "lucid_component_ndi.helper_server.os.kill", kill_first
+    )
+
+    caplog.set_level(logging.WARNING, logger="lucid.ndi.helper")
+
+    r2 = state.start_send(["yuri_simple", "--tx"], {"FOO": "2"})
+
+    assert r2["ok"] is True
+    assert r2["pid"] == fake_popen[1].pid
+    assert any(
+        "send pipeline already running" in rec.message
+        and rec.levelname == "WARNING"
+        for rec in caplog.records
+    ), f"expected warning log, got: {[r.message for r in caplog.records]}"
+    assert fake_popen[0]._alive is False

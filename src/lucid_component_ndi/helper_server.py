@@ -63,7 +63,13 @@ class PipelineState:
     def start_send(self, cmd: list[str], env: dict[str, str]) -> dict:
         with self._lock:
             if self._send_proc and self._send_proc.poll() is None:
-                return {"ok": False, "error": "send pipeline already running"}
+                logger.warning(
+                    "send pipeline already running (PID %d), restarting",
+                    self._send_proc.pid,
+                )
+                stop_res = self._stop_locked("send")
+                if not stop_res.get("ok", False):
+                    return stop_res
             try:
                 merged_env = {**os.environ, **env}
                 proc = subprocess.Popen(
