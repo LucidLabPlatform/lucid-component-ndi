@@ -37,7 +37,13 @@ class PipelineState:
     def start_receive(self, cmd: list[str], env: dict[str, str]) -> dict:
         with self._lock:
             if self._receive_proc and self._receive_proc.poll() is None:
-                return {"ok": False, "error": "receive pipeline already running"}
+                logger.warning(
+                    "receive pipeline already running (PID %d), restarting",
+                    self._receive_proc.pid,
+                )
+                stop_res = self._stop_locked("receive")
+                if not stop_res.get("ok", False):
+                    return stop_res
             try:
                 merged_env = {**os.environ, **env}
                 proc = subprocess.Popen(
