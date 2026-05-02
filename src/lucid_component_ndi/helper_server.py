@@ -52,7 +52,7 @@ class PipelineState:
 
     def stop_receive(self) -> dict:
         with self._lock:
-            return self._stop("receive")
+            return self._stop_locked("receive")
 
     def start_send(self, cmd: list[str], env: dict[str, str]) -> dict:
         with self._lock:
@@ -72,7 +72,7 @@ class PipelineState:
 
     def stop_send(self) -> dict:
         with self._lock:
-            return self._stop("send")
+            return self._stop_locked("send")
 
     def reset(self) -> dict:
         with self._lock:
@@ -92,7 +92,8 @@ class PipelineState:
                 "send_pid": send.pid if send and send.poll() is None else None,
             }
 
-    def _stop(self, pipeline: str) -> dict:
+    def _stop_locked(self, pipeline: str) -> dict:
+        """Stop a pipeline. Caller MUST hold self._lock."""
         proc = self._receive_proc if pipeline == "receive" else self._send_proc
         if not proc or proc.poll() is not None:
             if pipeline == "receive":
