@@ -24,6 +24,7 @@ logger = logging.getLogger("lucid.ndi.helper")
 
 SOCKET_PATH = os.environ.get("LUCID_NDI_SOCKET", "/run/lucid/ndi.sock")
 SOCKET_GROUP = "lucid"
+MAX_MSG_BYTES = 65536
 
 
 class PipelineState:
@@ -133,7 +134,10 @@ class PipelineState:
         if proc and proc.poll() is None:
             try:
                 proc.kill()
-                proc.wait(timeout=3.0)
+                try:
+                    proc.wait(timeout=3.0)
+                except subprocess.TimeoutExpired:
+                    pass
             except Exception:
                 pass
         if pipeline == "receive":
@@ -181,6 +185,10 @@ def _handle_client(conn: socket.socket, state: PipelineState) -> None:
             if not chunk:
                 return
             data += chunk
+            if len(data) > MAX_MSG_BYTES:
+                logger.error("Oversized message (%d bytes), dropping connection", len(data))
+                conn.sendall((json.dumps({"id": 0, "ok": False, "error": "message too large"}) + "\n").encode("utf-8"))
+                return
         line = data.split(b"\n", 1)[0]
         req = json.loads(line.decode("utf-8"))
         resp = _handle_request(state, req)
