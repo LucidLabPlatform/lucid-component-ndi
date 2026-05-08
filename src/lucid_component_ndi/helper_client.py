@@ -8,6 +8,7 @@ from typing import Any
 
 SOCKET_PATH = os.environ.get("LUCID_NDI_SOCKET", "/run/lucid/ndi.sock")
 TIMEOUT_S = 10.0
+MAX_MSG_BYTES = 65536
 
 
 def _request(cmd: str, **params: Any) -> dict[str, Any]:
@@ -24,6 +25,8 @@ def _request(cmd: str, **params: Any) -> dict[str, Any]:
             if not chunk:
                 break
             data += chunk
+            if len(data) > MAX_MSG_BYTES:
+                raise RuntimeError(f"response too large (>{MAX_MSG_BYTES} bytes)")
         return json.loads(data.split(b"\n", 1)[0].decode("utf-8"))
     finally:
         sock.close()
@@ -57,10 +60,3 @@ def reset() -> dict[str, Any]:
     return _request("reset")
 
 
-def is_available() -> bool:
-    """Check if the helper daemon socket exists and responds."""
-    try:
-        resp = ping()
-        return resp.get("ok", False)
-    except (FileNotFoundError, ConnectionRefusedError, OSError):
-        return False

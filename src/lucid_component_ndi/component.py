@@ -8,7 +8,6 @@ Telemetry: receive_running, send_running (gated, polled every 5s).
 """
 from __future__ import annotations
 
-import json
 import threading
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -61,12 +60,8 @@ class NDIComponent(Component):
             "reset", "ping",
             "receive/start", "receive/stop",
             "send/start", "send/stop",
+            "cfg/set",
         ]
-
-    def metadata(self) -> dict[str, Any]:
-        out = super().metadata()
-        out["capabilities"] = self.capabilities()
-        return out
 
     def schema(self) -> dict[str, Any]:
         s = deepcopy(super().schema())
@@ -134,8 +129,7 @@ class NDIComponent(Component):
             target=self._monitor_loop, name="NDIMonitor", daemon=True,
         )
         self._monitor_thread.start()
-        self._log.info("Started component: %s (helper available: %s)",
-                       self.component_id, helper_client.is_available())
+        self._log.info("Started component: %s", self.component_id)
 
     def _stop(self) -> None:
         self._stop_event.set()
@@ -223,11 +217,7 @@ class NDIComponent(Component):
     # ── command handlers ──────────────────────────────────────
 
     def on_cmd_reset(self, payload_str: str) -> None:
-        try:
-            payload = json.loads(payload_str) if payload_str else {}
-            request_id = payload.get("request_id", "")
-        except json.JSONDecodeError:
-            request_id = ""
+        request_id, payload = self._parse_cmd_payload(payload_str)
         try:
             helper_client.reset()
         except Exception as exc:
@@ -238,21 +228,14 @@ class NDIComponent(Component):
         self.publish_result("reset", request_id, ok=True, error=None)
 
     def on_cmd_ping(self, payload_str: str) -> None:
-        try:
-            payload = json.loads(payload_str) if payload_str else {}
-            request_id = payload.get("request_id", "")
-        except json.JSONDecodeError:
-            request_id = ""
+        request_id, payload = self._parse_cmd_payload(payload_str)
         self.publish_result("ping", request_id, ok=True, error=None)
 
     def on_cmd_receive_start(self, payload_str: str) -> None:
-        try:
-            payload = json.loads(payload_str) if payload_str else {}
-            request_id = payload.get("request_id", "")
-        except json.JSONDecodeError:
-            payload, request_id = {}, ""
+        request_id, payload = self._parse_cmd_payload(payload_str)
         if "stream_name" in payload:
             self._cfg["receive_stream_name"] = payload["stream_name"]
+            self.publish_cfg()
         if not self._cfg["receive_stream_name"]:
             self.publish_result("receive/start", request_id, ok=False,
                                 error="receive_stream_name not configured")
@@ -270,11 +253,7 @@ class NDIComponent(Component):
                             error=result.get("error") if not ok else None)
 
     def on_cmd_receive_stop(self, payload_str: str) -> None:
-        try:
-            payload = json.loads(payload_str) if payload_str else {}
-            request_id = payload.get("request_id", "")
-        except json.JSONDecodeError:
-            request_id = ""
+        request_id, payload = self._parse_cmd_payload(payload_str)
         try:
             result = helper_client.stop_receive()
         except Exception as exc:
@@ -287,13 +266,10 @@ class NDIComponent(Component):
                             error=result.get("error") if not ok else None)
 
     def on_cmd_send_start(self, payload_str: str) -> None:
-        try:
-            payload = json.loads(payload_str) if payload_str else {}
-            request_id = payload.get("request_id", "")
-        except json.JSONDecodeError:
-            payload, request_id = {}, ""
+        request_id, payload = self._parse_cmd_payload(payload_str)
         if "stream_name" in payload:
             self._cfg["send_stream_name"] = payload["stream_name"]
+            self.publish_cfg()
         if not self._cfg["send_stream_name"]:
             self.publish_result("send/start", request_id, ok=False,
                                 error="send_stream_name not configured")
@@ -311,11 +287,7 @@ class NDIComponent(Component):
                             error=result.get("error") if not ok else None)
 
     def on_cmd_send_stop(self, payload_str: str) -> None:
-        try:
-            payload = json.loads(payload_str) if payload_str else {}
-            request_id = payload.get("request_id", "")
-        except json.JSONDecodeError:
-            request_id = ""
+        request_id, payload = self._parse_cmd_payload(payload_str)
         try:
             result = helper_client.stop_send()
         except Exception as exc:

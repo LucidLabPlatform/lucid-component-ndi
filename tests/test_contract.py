@@ -53,6 +53,7 @@ def test_capabilities():
     assert "send/stop" in caps
     assert "reset" in caps
     assert "ping" in caps
+    assert "cfg/set" in caps
 
 
 def test_state_payload_structure():
@@ -86,7 +87,6 @@ def test_config_override_from_context():
 
 @patch("lucid_component_ndi.component.helper_client")
 def test_start_stop_lifecycle(mock_helper):
-    mock_helper.is_available.return_value = True
     mock_helper.get_status.return_value = {"ok": True, "receive_active": False, "send_active": False}
     comp, mqtt = _make()
     comp.start()
@@ -99,7 +99,6 @@ def test_start_stop_lifecycle(mock_helper):
 
 @patch("lucid_component_ndi.component.helper_client")
 def test_start_stop_idempotent(mock_helper):
-    mock_helper.is_available.return_value = True
     mock_helper.get_status.return_value = {"ok": True}
     comp, _ = _make()
     comp.start()
@@ -188,6 +187,84 @@ def test_cfg_set_unknown_key(mock_helper):
     assert result["ok"] is False
     assert "unknown" in result["error"]
     comp.stop()
+
+
+@patch("lucid_component_ndi.component.helper_client")
+def test_cmd_reset_bad_json(mock_helper):
+    """Bad JSON routes through _make_cmd_handler -> CmdPayloadError -> ok=False."""
+    mock_helper.get_status.return_value = {"ok": True}
+    comp, mqtt = _make()
+    handler = comp._make_cmd_handler("reset", comp.on_cmd_reset)
+    handler("{bad json}")
+    result = mqtt.last_payload_for("evt/reset/result")
+    assert result is not None
+    assert result["ok"] is False
+    assert "invalid JSON payload" in result["error"]
+
+
+@patch("lucid_component_ndi.component.helper_client")
+def test_cmd_ping_bad_json(mock_helper):
+    """Bad JSON routes through _make_cmd_handler -> CmdPayloadError -> ok=False."""
+    mock_helper.get_status.return_value = {"ok": True}
+    comp, mqtt = _make()
+    handler = comp._make_cmd_handler("ping", comp.on_cmd_ping)
+    handler("{bad json}")
+    result = mqtt.last_payload_for("evt/ping/result")
+    assert result is not None
+    assert result["ok"] is False
+    assert "invalid JSON payload" in result["error"]
+
+
+@patch("lucid_component_ndi.component.helper_client")
+def test_cmd_receive_start_bad_json(mock_helper):
+    """Bad JSON routes through _make_cmd_handler -> CmdPayloadError -> ok=False."""
+    mock_helper.get_status.return_value = {"ok": True}
+    comp, mqtt = _make()
+    handler = comp._make_cmd_handler("receive/start", comp.on_cmd_receive_start)
+    handler("{bad json}")
+    result = mqtt.last_payload_for("evt/receive/start/result")
+    assert result is not None
+    assert result["ok"] is False
+    assert "invalid JSON payload" in result["error"]
+
+
+@patch("lucid_component_ndi.component.helper_client")
+def test_cmd_receive_stop_bad_json(mock_helper):
+    """Bad JSON routes through _make_cmd_handler -> CmdPayloadError -> ok=False."""
+    mock_helper.get_status.return_value = {"ok": True}
+    comp, mqtt = _make()
+    handler = comp._make_cmd_handler("receive/stop", comp.on_cmd_receive_stop)
+    handler("{bad json}")
+    result = mqtt.last_payload_for("evt/receive/stop/result")
+    assert result is not None
+    assert result["ok"] is False
+    assert "invalid JSON payload" in result["error"]
+
+
+@patch("lucid_component_ndi.component.helper_client")
+def test_cmd_send_start_bad_json(mock_helper):
+    """Bad JSON routes through _make_cmd_handler -> CmdPayloadError -> ok=False."""
+    mock_helper.get_status.return_value = {"ok": True}
+    comp, mqtt = _make()
+    handler = comp._make_cmd_handler("send/start", comp.on_cmd_send_start)
+    handler("{bad json}")
+    result = mqtt.last_payload_for("evt/send/start/result")
+    assert result is not None
+    assert result["ok"] is False
+    assert "invalid JSON payload" in result["error"]
+
+
+@patch("lucid_component_ndi.component.helper_client")
+def test_cmd_send_stop_bad_json(mock_helper):
+    """Bad JSON routes through _make_cmd_handler -> CmdPayloadError -> ok=False."""
+    mock_helper.get_status.return_value = {"ok": True}
+    comp, mqtt = _make()
+    handler = comp._make_cmd_handler("send/stop", comp.on_cmd_send_stop)
+    handler("{bad json}")
+    result = mqtt.last_payload_for("evt/send/stop/result")
+    assert result is not None
+    assert result["ok"] is False
+    assert "invalid JSON payload" in result["error"]
 
 
 def test_build_receive_cmd():
